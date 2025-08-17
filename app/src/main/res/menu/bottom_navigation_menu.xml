@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/lostItemsFragment"
+        android:icon="@drawable/ic_search"
+        android:title="@string/lost_items" />
+    <item
+        android:id="@+id/foundItemsFragment"
+        android:icon="@drawable/ic_found"
+        android:title="@string/found_items" />
+    <item
+        android:id="@+id/myReportsFragment"
+        android:icon="@drawable/ic_reports"
+        android:title="@string/my_reports" />
+</menu>
+

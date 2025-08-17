@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Night theme specific colors -->
+    <color name="primary">#B4C6FF</color>
+    <color name="background">#FF121212</color>
+    <color name="surface">#FF121212</color>
+    <color name="error">#FFCF6679</color>
+    <color name="on_primary">#FF000000</color>
+    <color name="on_secondary">#FFFFFFFF</color>
+    <color name="on_background">#FFFFFFFF</color>
+    <color name="on_surface">#FFFFFFFF</color>
+    <color name="on_error">#FF000000</color>
+
+    <!-- Material Design 3 colors for dark theme -->
+    <color name="primary_container">#FF4F378B</color>
+    <color name="on_primary_container">#FFEADDFF</color>
+    <color name="secondary">#FFCCC2DC</color>
+    <color name="secondary_container">#FF4A4458</color>
+    <color name="on_secondary_container">#FFE8DEF8</color>
+    <color name="tertiary">#FFEFB8C8</color>
+    <color name="on_tertiary">#FF492532</color>
+    <color name="tertiary_container">#FF633B48</color>
+    <color name="on_tertiary_container">#FFFFD8E4</color>
+    <color name="error_container">#FF93000A</color>
+    <color name="on_error_container">#FFFFDAD6</color>
+    <color name="surface_variant">#FF49454F</color>
+    <color name="on_surface_variant">#FFCAC4D0</color>
+    <color name="outline">#FF938F99</color>
+    <color name="outline_variant">#FF49454F</color>
+    <color name="scrim">#FF000000</color>
+    <color name="inverse_surface">#FFE6E1E5</color>
+    <color name="inverse_on_surface">#FF313033</color>
+    <color name="inverse_primary">#FF6750A4</color>
+    <color name="surface_dim">#FF131316</color>
+    <color name="surface_bright">#FF39393C</color>
+    <color name="surface_container_lowest">#FF0F0F13</color>
+    <color name="surface_container_low">#FF1D1B1E</color>
+    <color name="surface_container">#FF211F22</color>
+    <color name="surface_container_high">#FF2B292C</color>
+    <color name="surface_container_highest">#FF363337</color>
+</resources>

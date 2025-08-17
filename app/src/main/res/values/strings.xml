@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Campus Lost &amp; Found</string>
+    <string name="logout">Logout</string>
+    <string name="add_item">Add Item</string>
+    <string name="lost_items">Lost Items</string>
+    <string name="found_items">Found Items</string>
+    <string name="my_reports">My Reports</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="student_id">Student ID</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="report_item">Report Item</string>
+    <string name="item_name">Item Name</string>
+    <string name="item_description">Item Description</string>
+    <string name="item_category">Item Category</string>
+    <string name="location_found">Location Found</string>
+    <string name="date_found">Date Found</string>
+    <string name="submit">Submit</string>
+    <string name="search_items">Search items...</string>
+    <string name="no_items_found">No items found</string>
+    <string name="loading">Loading...</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="login_successful">Login successful</string>
+    <string name="logout_successful">Logout successful</string>
+    <string name="item_reported_successfully">Item reported successfully</string>
+    <string name="invalid_email">Invalid email address</string>
+    <string name="password_too_short">Password must be at least 6 characters</string>
+    <string name="passwords_dont_match">Passwords don\'t match</string>
+    <string name="all_fields_required">All fields are required</string>
+    <string name="network_error">Network error. Please check your connection.</string>
+    <string name="login_failed">Login failed. Please check your credentials.</string>
+    <string name="registration_failed">Registration failed. Please try again.</string>
+    <string name="item_submission_failed">Failed to submit item. Please try again.</string>
+    <string name="contact_reporter">Contact Reporter</string>
+    <string name="mark_as_found">Mark as Found</string>
+    <string name="mark_as_returned">Mark as Returned</string>
+    <string name="item_details">Item Details</string>
+    <string name="reported_by">Reported by</string>
+    <string name="reported_on">Reported on</string>
+    <string name="status">Status</string>
+    <string name="lost">Lost</string>
+    <string name="found">Found</string>
+    <string name="returned">Returned</string>
+    <string name="location">Location</string>
+    <string name="date">Date</string>
+    <string name="time">Time</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="confirm">Confirm</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="save">Save</string>
+    <string name="update">Update</string>
+
+    <!-- Login screen strings -->
+    <string name="login_subtitle">Sign in to access your campus lost and found account</string>
+    <string name="or">OR</string>
+    <string name="use_default_email">Use Default Email</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="create_account">Create Account</string>
+    <string name="skip_authentication">Skip Authentication</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="enter_email">Enter your email</string>
+    <string name="enter_password">Enter your password</string>
+
+    <!-- Item card strings -->
+    <string name="item_image_description">Item image</string>
+
+    <!-- Additional item card strings -->
+    <string name="claim_item">Claim Item</string>
+    <string name="i_found_this">I Found This</string>
+    <string name="this_is_mine">This is Mine</string>
+    <string name="lost_at">Lost at: %s</string>
+    <string name="found_at">Found at: %s</string>
+    <string name="lost_on">Lost on: %s</string>
+    <string name="found_on">Found on: %s</string>
+
+    <!-- Claim dialog strings -->
+    <string name="claim_confirmation_message">Please provide your contact information so the finder can reach you to arrange pickup.</string>
+    <string name="contact_info_hint">Contact information (phone, email, etc.)</string>
+    <string name="claim_note">The person who found this item will be notified of your claim request.</string>
+
+    <!-- Menu strings -->
+    <string name="refresh">Refresh</string>
+</resources>

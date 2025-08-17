@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Style for rounded images -->
+    <style name="RoundedImageView">
+        <item name="cornerSize">8dp</item>
+        <item name="cornerFamily">rounded</item>
+    </style>
+
+    <!-- Style for rounded buttons -->
+    <style name="RoundedButton" parent="Widget.MaterialComponents.Button">
+        <item name="cornerRadius">24dp</item>
+    </style>
+
+    <!-- Style for outlined rounded buttons -->
+    <style name="RoundedOutlinedButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="cornerRadius">24dp</item>
+    </style>
+</resources>
