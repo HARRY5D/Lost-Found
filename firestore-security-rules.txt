@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow users to read and write their own user documents
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Lost Items Collection - Allow all authenticated users to read, but only owners can write/delete
+    match /lostItems/{itemId} {
+      // Anyone authenticated can read lost items (for cross-user visibility)
+      allow read: if request.auth != null;
+
+      // Allow creating items (fixed: use request.resource.data for new documents)
+      allow create: if request.auth != null &&
+                   request.auth.uid == request.resource.data.reportedBy;
+
+      // Only the item owner can update or delete their items
+      allow update, delete: if request.auth != null &&
+                           request.auth.uid == resource.data.reportedBy;
+    }
+
+    // Found Items Collection - Allow all authenticated users to read, but only owners can write/delete
+    match /foundItems/{itemId} {
+      // Anyone authenticated can read found items (for cross-user visibility)
+      allow read: if request.auth != null;
+
+      // Allow creating items (fixed: use request.resource.data for new documents)
+      allow create: if request.auth != null &&
+                   request.auth.uid == request.resource.data.reportedBy;
+
+      // Only the item owner can update or delete their items
+      allow update, delete: if request.auth != null &&
+                           request.auth.uid == resource.data.reportedBy;
+
+      // Allow claiming items (updating claim status by any authenticated user)
+      allow update: if request.auth != null &&
+                   'claimed' in request.resource.data &&
+                   'claimedBy' in request.resource.data &&
+                   'claimedByName' in request.resource.data;
+    }
+
+    // Deny all other requests
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
