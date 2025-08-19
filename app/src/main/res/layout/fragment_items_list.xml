@@ -1,77 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    tools:context=".LostItemsFragment">
+    android:orientation="vertical"
+    android:padding="16dp">
 
-    <!-- Search Filter Container -->
-    <LinearLayout
-        android:id="@+id/search_filter_container"
-        android:layout_width="0dp"
+    <!-- Search View -->
+    <SearchView
+        android:id="@+id/searchView"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/rounded_search_background"
+        android:iconifiedByDefault="false"
+        android:queryHint="Search items..." />
 
-        <SearchView
-            android:id="@+id/searchView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:iconifiedByDefault="false"
-            android:queryHint="Search items..." />
-    </LinearLayout>
-
+    <!-- Tab Layout for My Reports -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/myReportsTabLayout"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/search_filter_container"
-        tools:visibility="visible" />
+        android:layout_marginBottom="8dp"
+        app:tabMode="fixed"
+        app:tabGravity="fill"
+        style="@style/Widget.MaterialComponents.TabLayout" />
 
+    <!-- RecyclerView for items -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/itemsRecyclerView"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:clipToPadding="false"
-        android:padding="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/myReportsTabLayout"
-        tools:listitem="@layout/item_card" />
+        android:layout_weight="1"
+        android:scrollbars="vertical" />
 
+    <!-- Empty view -->
     <TextView
         android:id="@+id/empty_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
         android:text="No items found"
         android:textSize="16sp"
-        android:textColor="@color/on_surface"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:textColor="@android:color/darker_gray"
+        android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/noItemsTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="No items to display"
-        android:textSize="16sp"
-        android:textColor="@color/on_surface"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

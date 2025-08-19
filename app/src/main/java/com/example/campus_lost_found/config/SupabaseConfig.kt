@@ -7,4 +7,7 @@ object SupabaseConfig {
 
     // Storage bucket name for images
     const val STORAGE_BUCKET = "item-images"
+
+    // Authentication configuration
+    const val AUTH_REDIRECT_URL = "com.example.campus_lost_found://auth"
 }

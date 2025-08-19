@@ -9,20 +9,23 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.campus_lost_found.R
+import com.example.campus_lost_found.model.SupabaseFoundItem
+import com.example.campus_lost_found.model.SupabaseLostItem
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
-import com.google.firebase.firestore.DocumentSnapshot
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class AdminItemsAdapter(
-    private var items: List<DocumentSnapshot> = emptyList(),
     private val itemType: String,
-    private val onItemClicked: (DocumentSnapshot) -> Unit,
-    private val onApproveClicked: (DocumentSnapshot) -> Unit,
-    private val onRejectClicked: (DocumentSnapshot) -> Unit
+    private val onItemClicked: (Any) -> Unit,
+    private val onApproveClicked: (Any) -> Unit,
+    private val onRejectClicked: (Any) -> Unit
 ) : RecyclerView.Adapter<AdminItemsAdapter.AdminItemViewHolder>() {
+
+    private var lostItems: List<SupabaseLostItem> = emptyList()
+    private var foundItems: List<SupabaseFoundItem> = emptyList()
 
     class AdminItemViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val itemImage: ImageView = itemView.findViewById(R.id.admin_item_image)
@@ -47,128 +50,130 @@ class AdminItemsAdapter(
     }
 
     override fun onBindViewHolder(holder: AdminItemViewHolder, position: Int) {
-        val item = items[position]
         val context = holder.itemView.context
+        val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
-        // Set up common fields for all item types
-        val itemName = item.getString("name") ?: "Unnamed Item"
-        val category = item.getString("category") ?: "Uncategorized"
-        val description = item.getString("description") ?: "No description provided"
-        val location = item.getString("location") ?: "Unknown location"
-        val imageUrl = item.getString("imageURL")
-
-        holder.itemName.text = itemName
-        holder.itemCategory.text = "Category: $category"
-        holder.itemLocation.text = "Location: $location"
-        holder.itemDescription.text = description
-
-        // Handle item image
-        if (imageUrl != null && imageUrl.isNotEmpty()) {
-            Glide.with(context)
-                .load(imageUrl)
-                .placeholder(R.drawable.ic_admin)
-                .error(R.drawable.ic_admin)
-                .centerCrop()
-                .into(holder.itemImage)
-        } else {
-            holder.itemImage.setImageResource(R.drawable.ic_admin)
-        }
-
-        // Set item specific data based on type
         when (itemType) {
-            "lost" -> {
-                val dateLost = item.getTimestamp("dateLost")?.toDate() ?: Date()
-                val dateFormatted = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(dateLost)
-                holder.itemDate.text = "Lost on: $dateFormatted"
-                holder.itemStatus.text = "Lost"
-                holder.itemStatus.setChipBackgroundColorResource(R.color.error_container)
-
-                // Hide claim section for lost items
-                holder.claimSection.visibility = View.GONE
-                holder.approveButton.visibility = View.GONE
-                holder.rejectButton.visibility = View.GONE
+            "lost_items" -> {
+                val item = lostItems[position]
+                bindLostItem(holder, item, context, dateFormat)
             }
-            "found" -> {
-                val dateFound = item.getTimestamp("dateFound")?.toDate() ?: Date()
-                val dateFormatted = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(dateFound)
-                holder.itemDate.text = "Found on: $dateFormatted"
-
-                // Show where the item is kept
-                val keptAt = item.getString("keptAt") ?: "Not specified"
-                holder.itemDescription.text = "$description\n\nKept at: $keptAt"
-
-                val isClaimed = item.getBoolean("claimed") ?: false
-                if (isClaimed) {
-                    holder.itemStatus.text = "Claimed"
-                    holder.itemStatus.setChipBackgroundColorResource(R.color.secondary_container)
-                } else {
-                    holder.itemStatus.text = "Found"
-                    holder.itemStatus.setChipBackgroundColorResource(R.color.primary_container)
-                }
-
-                // Hide claim section for found items
-                holder.claimSection.visibility = View.GONE
-                holder.approveButton.visibility = View.GONE
-                holder.rejectButton.visibility = View.GONE
+            "found_items" -> {
+                val item = foundItems[position]
+                bindFoundItem(holder, item, context, dateFormat)
             }
-            "claims" -> {
-                val dateClaimed = item.getTimestamp("dateClaimed")?.toDate() ?: Date()
-                val dateFormatted = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(dateClaimed)
-                holder.itemDate.text = "Claimed on: $dateFormatted"
-
-                // Show claim details
-                val claimedBy = item.getString("claimedBy") ?: "Unknown user"
-                val claimMessage = item.getString("message") ?: "No message provided"
-
-                holder.claimSection.visibility = View.VISIBLE
-                holder.claimBy.text = "Claimed by: $claimedBy"
-                holder.claimMessage.text = "Message: $claimMessage"
-
-                // Set status and action buttons based on approval state
-                val isApproved = item.getBoolean("approved") ?: false
-                val isRejected = item.getBoolean("rejected") ?: false
-
-                when {
-                    isApproved -> {
-                        holder.itemStatus.text = "Approved"
-                        holder.itemStatus.setChipBackgroundColorResource(R.color.tertiary_container)
-                        holder.approveButton.visibility = View.GONE
-                        holder.rejectButton.visibility = View.GONE
-                    }
-                    isRejected -> {
-                        holder.itemStatus.text = "Rejected"
-                        holder.itemStatus.setChipBackgroundColorResource(R.color.error_container)
-                        holder.approveButton.visibility = View.GONE
-                        holder.rejectButton.visibility = View.GONE
-                    }
-                    else -> {
-                        holder.itemStatus.text = "Pending"
-                        holder.itemStatus.setChipBackgroundColorResource(R.color.secondary_container)
-                        holder.approveButton.visibility = View.VISIBLE
-                        holder.rejectButton.visibility = View.VISIBLE
-                    }
-                }
-            }
-        }
-
-        // Set up click listeners
-        holder.detailsButton.setOnClickListener {
-            onItemClicked(item)
-        }
-
-        holder.approveButton.setOnClickListener {
-            onApproveClicked(item)
-        }
-
-        holder.rejectButton.setOnClickListener {
-            onRejectClicked(item)
         }
     }
 
-    override fun getItemCount() = items.size
+    private fun bindLostItem(
+        holder: AdminItemViewHolder,
+        item: SupabaseLostItem,
+        context: android.content.Context,
+        dateFormat: SimpleDateFormat
+    ) {
+        // Basic item info
+        holder.itemName.text = item.name
+        holder.itemCategory.text = item.category
+        holder.itemLocation.text = item.location
+        holder.itemDescription.text = item.description ?: context.getString(R.string.no_description_provided) // Handle nullable description
+        holder.itemDate.text = dateFormat.format(Date(item.reportedDate))
 
-    fun updateItems(newItems: List<DocumentSnapshot>) {
-        items = newItems
+        // Load image
+        if (item.imageUrl.isNotEmpty()) {
+            Glide.with(context)
+                .load(item.imageUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .into(holder.itemImage)
+        } else {
+            holder.itemImage.setImageResource(android.R.drawable.ic_menu_gallery)
+        }
+
+        // Status
+        holder.itemStatus.text = context.getString(R.string.lost_item)
+        holder.itemStatus.setChipBackgroundColorResource(android.R.color.holo_red_light)
+
+        // Hide claim section for lost items
+        holder.claimSection.visibility = View.GONE
+
+        // Button actions
+        holder.detailsButton.setOnClickListener { onItemClicked(item) }
+        holder.approveButton.text = context.getString(R.string.mark_found)
+        holder.approveButton.setOnClickListener { onApproveClicked(item) }
+        holder.rejectButton.text = context.getString(R.string.delete)
+        holder.rejectButton.setOnClickListener { onRejectClicked(item) }
+    }
+
+    private fun bindFoundItem(
+        holder: AdminItemViewHolder,
+        item: SupabaseFoundItem,
+        context: android.content.Context,
+        dateFormat: SimpleDateFormat
+    ) {
+        // Basic item info
+        holder.itemName.text = item.name
+        holder.itemCategory.text = item.category
+        holder.itemLocation.text = item.location
+        holder.itemDescription.text = item.description ?: context.getString(R.string.no_description_provided) // Handle nullable description
+        holder.itemDate.text = dateFormat.format(Date(item.reportedDate))
+
+        // Load image
+        if (item.imageUrl.isNotEmpty()) {
+            Glide.with(context)
+                .load(item.imageUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .into(holder.itemImage)
+        } else {
+            holder.itemImage.setImageResource(android.R.drawable.ic_menu_gallery)
+        }
+
+        // Status based on claimed state
+        if (item.claimed) {
+            holder.itemStatus.text = context.getString(R.string.claimed)
+            holder.itemStatus.setChipBackgroundColorResource(android.R.color.holo_green_light)
+        } else {
+            holder.itemStatus.text = context.getString(R.string.available)
+            holder.itemStatus.setChipBackgroundColorResource(android.R.color.holo_blue_light)
+        }
+
+        // Show claim info if claimed
+        if (item.claimed && item.claimedByEmail.isNotEmpty()) {
+            holder.claimSection.visibility = View.VISIBLE
+            holder.claimBy.text = context.getString(R.string.claimed_by_format, item.claimedByEmail)
+            holder.claimMessage.text = context.getString(R.string.kept_at_format, item.keptAt)
+        } else {
+            holder.claimSection.visibility = View.GONE
+        }
+
+        // Button actions
+        holder.detailsButton.setOnClickListener { onItemClicked(item) }
+
+        if (item.claimed) {
+            holder.approveButton.text = context.getString(R.string.mark_unclaimed)
+            holder.approveButton.setOnClickListener { onApproveClicked(item) }
+        } else {
+            holder.approveButton.text = context.getString(R.string.mark_claimed)
+            holder.approveButton.setOnClickListener { onApproveClicked(item) }
+        }
+
+        holder.rejectButton.text = context.getString(R.string.delete)
+        holder.rejectButton.setOnClickListener { onRejectClicked(item) }
+    }
+
+    override fun getItemCount(): Int {
+        return when (itemType) {
+            "lost_items" -> lostItems.size
+            "found_items" -> foundItems.size
+            else -> 0
+        }
+    }
+
+    fun updateLostItems(newItems: List<SupabaseLostItem>) {
+        lostItems = newItems
+        notifyDataSetChanged()
+    }
+
+    fun updateFoundItems(newItems: List<SupabaseFoundItem>) {
+        foundItems = newItems
         notifyDataSetChanged()
     }
 }

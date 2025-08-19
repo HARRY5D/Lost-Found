@@ -5,6 +5,9 @@ import android.net.Uri
 import android.util.Log
 import com.example.campus_lost_found.config.SupabaseConfig
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 import io.ktor.client.HttpClient
@@ -31,11 +34,64 @@ class SupabaseManager private constructor() {
             supabaseKey = SupabaseConfig.SUPABASE_ANON_KEY
         ) {
             install(Storage)
+            install(Auth)
         }
     }
 
     private val storage by lazy { supabaseClient.storage }
+    private val auth by lazy { supabaseClient.auth }
 
+    // Authentication Methods
+    suspend fun signUp(email: String, password: String): Result<String> {
+        return try {
+            auth.signUpWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            Result.success("Sign up successful! Please check your email for verification.")
+        } catch (e: Exception) {
+            Log.e("SupabaseAuth", "Sign up failed: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun signIn(email: String, password: String): Result<String> {
+        return try {
+            auth.signInWith(Email) {
+                this.email = email
+                this.password = password
+            }
+            val currentUser = auth.currentUserOrNull()
+            Result.success(currentUser?.id ?: "")
+        } catch (e: Exception) {
+            Log.e("SupabaseAuth", "Sign in failed: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun signOut(): Result<Unit> {
+        return try {
+            auth.signOut()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("SupabaseAuth", "Sign out failed: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    fun getCurrentUser(): String? {
+        return auth.currentUserOrNull()?.id
+    }
+
+    fun getCurrentUserEmail(): String? {
+        return auth.currentUserOrNull()?.email
+    }
+
+    fun isUserSignedIn(): Boolean {
+        return auth.currentUserOrNull() != null
+    }
+
+    // Existing image upload methods remain the same
     suspend fun uploadImage(
         context: Context,
         imageUri: Uri,

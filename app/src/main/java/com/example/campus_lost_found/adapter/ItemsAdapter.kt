@@ -14,6 +14,7 @@ import com.example.campus_lost_found.model.FoundItem
 import com.example.campus_lost_found.model.Item
 import com.example.campus_lost_found.model.LostItem
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class ItemsAdapter(
@@ -91,11 +92,11 @@ class ItemsAdapter(
             when (item) {
                 is LostItem -> {
                     itemLocation.text = itemView.context.getString(R.string.lost_at, item.location)
-                    itemDate.text = itemView.context.getString(R.string.lost_on, dateFormat.format(item.dateLost.toDate()))
+                    itemDate.text = itemView.context.getString(R.string.lost_on, dateFormat.format(Date(item.dateLost)))
                 }
                 is FoundItem -> {
                     itemLocation.text = itemView.context.getString(R.string.found_at, item.location)
-                    itemDate.text = itemView.context.getString(R.string.found_on, dateFormat.format(item.dateFound.toDate()))
+                    itemDate.text = itemView.context.getString(R.string.found_on, dateFormat.format(Date(item.dateFound)))
                 }
             }
 

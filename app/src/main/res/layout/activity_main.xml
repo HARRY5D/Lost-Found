@@ -13,69 +13,94 @@
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true">
 
-        <!-- Toolbar with logout button -->
-        <RelativeLayout
+        <!-- Fixed Toolbar with proper alignment and sizing -->
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary">
+            android:layout_height="118dp"
+            android:background="?attr/colorPrimary"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp">
 
-            <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/toolbar"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_toStartOf="@id/logoutButton"
-                app:title="Campus Lost &amp; Found"
-                app:titleTextColor="?attr/colorOnPrimary" />
+            <!-- App Title - Better constrained and sized -->
+            <TextView
+                android:id="@+id/toolbarTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:ellipsize="end"
+                android:gravity="start|center_vertical"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:text="Campus Lost &amp; Found"
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/logoutButton"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.5" />
 
+            <!-- Logout Button - Better sized and positioned -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/logoutButton"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:layout_marginEnd="8dp"
-                android:text="@string/logout"
+                android:layout_height="40dp"
+                android:minWidth="80dp"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:text="Logout"
+                android:textAllCaps="false"
                 android:textColor="?attr/colorOnPrimary"
                 android:textSize="12sp"
                 app:icon="@drawable/ic_logout"
+                app:iconPadding="4dp"
                 app:iconSize="16dp"
-                app:iconTint="?attr/colorOnPrimary" />
+                app:iconTint="?attr/colorOnPrimary"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_bias="0.5" />
 
-        </RelativeLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- Tab Layout moved to top -->
+        <!-- Tab Layout with better styling -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/mainTabLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?attr/colorPrimary"
-            app:tabTextColor="?attr/colorOnPrimary"
-            app:tabSelectedTextColor="?attr/colorOnPrimary"
+            app:tabGravity="fill"
             app:tabIndicatorColor="?attr/colorOnPrimary"
-            app:tabMode="fixed" />
+            app:tabIndicatorHeight="3dp"
+            app:tabMode="fixed"
+            app:tabSelectedTextColor="?attr/colorOnPrimary"
+            app:tabTextAppearance="@style/TabTextAppearance"
+            app:tabTextColor="?attr/colorOnPrimary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Main content area -->
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/nav_host_fragment"
-        android:name="androidx.navigation.fragment.NavHostFragment"
+    <!-- ViewPager2 directly in layout instead of FragmentContainerView -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/mainViewPager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        app:defaultNavHost="true"
-        app:navGraph="@navigation/nav_graph" />
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <!-- FAB for adding items -->
+    <!-- FAB with better positioning -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddItem"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="@string/add_item"
+        android:contentDescription="Add Item"
         app:srcCompat="@drawable/ic_add"
-        app:tint="?attr/colorOnPrimary" />
+        app:tint="?attr/colorOnPrimary"
+        app:backgroundTint="?attr/colorPrimary"
+        app:borderWidth="0dp"
+        app:elevation="8dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

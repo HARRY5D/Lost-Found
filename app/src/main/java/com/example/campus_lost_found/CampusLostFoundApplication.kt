@@ -2,13 +2,19 @@ package com.example.campus_lost_found
 
 import android.app.Application
 import android.util.Log
-import com.google.firebase.FirebaseApp
+import com.example.campus_lost_found.config.SupabaseConfig
+import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.storage.Storage
 
 class CampusLostFoundApplication : Application() {
 
     companion object {
         private const val TAG = "CampusLostFoundApp"
-        var isFirebaseInitialized = false
+        var isSupabaseInitialized = false
+            private set
+            
+        lateinit var supabaseClient: io.github.jan.supabase.SupabaseClient
             private set
     }
 
@@ -16,18 +22,24 @@ class CampusLostFoundApplication : Application() {
         super.onCreate()
 
         try {
-            Log.d(TAG, "Initializing Firebase...")
+            Log.d(TAG, "Initializing Supabase...")
 
-            // Initialize Firebase
-            FirebaseApp.initializeApp(this)
+            // Initialize Supabase
+            supabaseClient = createSupabaseClient(
+                supabaseUrl = SupabaseConfig.SUPABASE_URL,
+                supabaseKey = SupabaseConfig.SUPABASE_ANON_KEY
+            ) {
+                install(Postgrest)
+                install(Storage)
+            }
 
-            isFirebaseInitialized = true
-            Log.d(TAG, "Firebase initialized successfully")
+            isSupabaseInitialized = true
+            Log.d(TAG, "Supabase initialized successfully")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Critical error initializing Firebase: ${e.message}", e)
-            // Don't crash the app - let it continue without Firebase
-            isFirebaseInitialized = false
+            Log.e(TAG, "Critical error initializing Supabase: ${e.message}", e)
+            // Don't crash the app - let it continue without Supabase
+            isSupabaseInitialized = false
         }
 
         Log.d(TAG, "Application onCreate completed")

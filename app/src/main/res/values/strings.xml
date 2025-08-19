@@ -88,4 +88,16 @@
 
     <!-- Menu strings -->
     <string name="refresh">Refresh</string>
+
+    <!-- Admin Dashboard strings -->
+    <string name="claimed_by_format">Claimed by: %1$s</string>
+    <string name="kept_at_format">Kept at: %1$s</string>
+    <string name="no_description_provided">No description provided</string>
+    <string name="lost_item">Lost Item</string>
+    <string name="claimed">Claimed</string>
+    <string name="available">Available</string>
+    <string name="mark_found">Mark Found</string>
+    <string name="mark_unclaimed">Mark Unclaimed</string>
+    <string name="mark_claimed">Mark Claimed</string>
+
 </resources>

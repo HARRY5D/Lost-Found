@@ -5,15 +5,17 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.widget.SearchView
+import android.widget.SearchView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.campus_lost_found.adapter.ItemsAdapter
 import com.example.campus_lost_found.model.LostItem
 import com.example.campus_lost_found.repository.ItemRepository
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.firebase.auth.FirebaseAuth
+import com.example.campus_lost_found.utils.SupabaseManager
+import kotlinx.coroutines.launch
 
 class LostItemsFragment : Fragment() {
 
@@ -21,7 +23,7 @@ class LostItemsFragment : Fragment() {
     private lateinit var searchView: SearchView
     private val itemRepository = ItemRepository()
     private val currentUserId: String
-        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        get() = SupabaseManager.getInstance().getCurrentUser() ?: ""
 
     private var lostItems = listOf<LostItem>()
 
@@ -102,29 +104,33 @@ class LostItemsFragment : Fragment() {
     private fun loadLostItems() {
         Log.d("LostItemsFragment", "Loading lost items from all users...")
 
-        itemRepository.getLostItems().get()
-            .addOnSuccessListener { snapshot ->
-                Log.d("LostItemsFragment", "Successfully loaded ${snapshot.size()} lost items")
-                val items = snapshot.toObjects(LostItem::class.java)
+        lifecycleScope.launch {
+            itemRepository.getLostItems(
+                onSuccess = { items ->
+                    Log.d("LostItemsFragment", "Successfully loaded ${items.size} lost items")
 
-                // Debug: Log each item to see what's being loaded
-                items.forEachIndexed { index, item ->
-                    Log.d("LostItemsFragment", "Item $index: ${item.name} by ${item.reportedByName} (${item.reportedBy})")
+                    // Debug: Log each item to see what's being loaded
+                    items.forEachIndexed { index, item ->
+                        Log.d("LostItemsFragment", "Item $index: ${item.name} by ${item.reportedByName} (${item.reportedBy})")
+                    }
+
+                    lostItems = items
+                    updateRecyclerView(items)
+
+                    // Show empty state if no items
+                    if (items.isEmpty()) {
+                        showEmptyState("No lost items found. Be the first to report!")
+                    } else {
+                        Log.d("LostItemsFragment", "Loaded items from ${items.map { it.reportedByName }.distinct().size} different users")
+                    }
+                },
+                onFailure = { exception ->
+                    Log.e("LostItemsFragment", "Failed to load lost items: ${exception.message}")
+                    showErrorDialog("Failed to load lost items: ${exception.message}")
+                    showEmptyState("Failed to load items. Please check your connection.")
                 }
-
-                lostItems = items
-                updateRecyclerView(items)
-
-                // Show empty state if no items
-                if (items.isEmpty()) {
-                    showEmptyState("No lost items found. Be the first to report!")
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.e("LostItemsFragment", "Failed to load lost items: ${exception.message}")
-                showErrorDialog("Failed to load lost items: ${exception.message}")
-                showEmptyState("Failed to load items. Please check your connection.")
-            }
+            )
+        }
     }
 
     private fun updateRecyclerView(items: List<LostItem>) {
@@ -143,12 +149,13 @@ class LostItemsFragment : Fragment() {
     }
 
     private fun showItemDetailsDialog(item: LostItem) {
+        val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
         val message = """
             Name: ${item.name}
             Category: ${item.category}
             Location: ${item.location}
             Description: ${item.description}
-            Date Lost: ${item.dateLost.toDate()}
+            Date Lost: ${dateFormat.format(java.util.Date(item.dateLost))}
             Reported by: ${item.reportedByName}
         """.trimIndent()
 
@@ -182,7 +189,7 @@ class LostItemsFragment : Fragment() {
     private fun showContactInfoDialog(item: LostItem) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Contact Information")
-            .setMessage("Reporter: ${item.reportedByName}\n\nNote: In a full implementation, this would show contact details or open an in-app messaging system.")
+            .setMessage("Reporter: ${item.reportedByName}\n\nDirect messaging feature will be implemented soon. For now, please contact the reporter through other means.")
             .setPositiveButton("OK", null)
             .show()
     }

@@ -6,9 +6,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.widget.SearchView
+import android.widget.SearchView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.campus_lost_found.adapter.ItemsAdapter
@@ -18,17 +19,18 @@ import com.example.campus_lost_found.model.LostItem
 import com.example.campus_lost_found.repository.ItemRepository
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
-import com.google.firebase.auth.FirebaseAuth
+import com.example.campus_lost_found.utils.SupabaseManager
+import kotlinx.coroutines.launch
 
 class MyReportsFragment : Fragment() {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var searchView: SearchView
     private lateinit var tabLayout: TabLayout
-    private lateinit var noItemsTextView: TextView
+    private var noItemsTextView: TextView? = null  // Make it nullable to prevent crashes
     private val itemRepository = ItemRepository()
     private val currentUserId: String
-        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        get() = SupabaseManager.getInstance().getCurrentUser() ?: ""
 
     private var myLostItems = listOf<LostItem>()
     private var myFoundItems = listOf<FoundItem>()
@@ -57,7 +59,11 @@ class MyReportsFragment : Fragment() {
                 createTabLayoutProgrammatically(view)
             }
 
-            noItemsTextView = view.findViewById(R.id.empty_view) ?: throw IllegalStateException("Empty view not found")
+            // Make noItemsTextView optional to prevent crashes
+            noItemsTextView = view.findViewById(R.id.empty_view)
+            if (noItemsTextView == null) {
+                Log.w("MyReportsFragment", "empty_view not found in layout")
+            }
 
             setupRecyclerView()
             setupTabLayout()
@@ -194,44 +200,59 @@ class MyReportsFragment : Fragment() {
         }
 
         // Load lost items reported by current user
-        itemRepository.getLostItemsByUser(currentUserId).get()
-            .addOnSuccessListener { snapshot ->
-                myLostItems = snapshot.toObjects(LostItem::class.java)
-                if (displayingLostItems) {
-                    updateRecyclerView(myLostItems)
+        lifecycleScope.launch {
+            itemRepository.getLostItemsByUser(currentUserId,
+                onSuccess = { items ->
+                    myLostItems = items
+                    if (displayingLostItems) {
+                        updateRecyclerView(myLostItems)
+                    }
+                },
+                onFailure = { exception ->
+                    showErrorDialog("Failed to load your lost items: ${exception.message}")
                 }
-            }
-            .addOnFailureListener { exception ->
-                showErrorDialog("Failed to load your lost items: ${exception.message}")
-            }
+            )
+        }
 
         // Load found items reported by current user
-        itemRepository.getFoundItemsByUser(currentUserId).get()
-            .addOnSuccessListener { snapshot ->
-                myFoundItems = snapshot.toObjects(FoundItem::class.java)
-                if (!displayingLostItems) {
-                    updateRecyclerView(myFoundItems)
+        lifecycleScope.launch {
+            itemRepository.getFoundItemsByUser(currentUserId,
+                onSuccess = { items ->
+                    myFoundItems = items
+                    if (!displayingLostItems) {
+                        updateRecyclerView(myFoundItems)
+                    }
+                },
+                onFailure = { exception ->
+                    showErrorDialog("Failed to load your found items: ${exception.message}")
                 }
-            }
-            .addOnFailureListener { exception ->
-                showErrorDialog("Failed to load your found items: ${exception.message}")
-            }
+            )
+        }
     }
 
     private fun <T : Item> updateRecyclerView(items: List<T>) {
         if (items.isEmpty()) {
             recyclerView.visibility = View.GONE
-            noItemsTextView.visibility = View.VISIBLE
-            noItemsTextView.text = if (displayingLostItems) {
-                "You haven't reported any lost items yet"
-            } else {
-                "You haven't reported any found items yet"
+            noItemsTextView?.let { textView ->
+                textView.visibility = View.VISIBLE
+                textView.text = if (displayingLostItems) {
+                    "You haven't reported any lost items yet"
+                } else {
+                    "You haven't reported any found items yet"
+                }
+            } ?: run {
+                // If no noItemsTextView, show toast instead
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    if (displayingLostItems) "No lost items reported" else "No found items reported",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
             }
             return
         }
 
         recyclerView.visibility = View.VISIBLE
-        noItemsTextView.visibility = View.GONE
+        noItemsTextView?.visibility = View.GONE
 
         val adapter = ItemsAdapter(
             items = items.toMutableList(),
@@ -258,13 +279,14 @@ class MyReportsFragment : Fragment() {
     }
 
     private fun showItemDetailsDialog(item: Item) {
+        val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
         val message = when (item) {
             is LostItem -> """
                 Name: ${item.name}
                 Category: ${item.category}
                 Location: ${item.location}
                 Description: ${item.description}
-                Date Lost: ${item.dateLost.toDate()}
+                Date Lost: ${dateFormat.format(java.util.Date(item.dateLost))}
             """.trimIndent()
 
             is FoundItem -> {
@@ -279,7 +301,7 @@ class MyReportsFragment : Fragment() {
                 Category: ${item.category}
                 Location: ${item.location}
                 Description: ${item.description}
-                Date Found: ${item.dateFound.toDate()}
+                Date Found: ${dateFormat.format(java.util.Date(item.dateFound))}
                 Kept at: ${item.keptAt}
                 Status: $claimStatus
                 """.trimIndent()
@@ -329,52 +351,96 @@ class MyReportsFragment : Fragment() {
     }
 
     private fun deleteItem(item: Item) {
-        when (item) {
-            is LostItem -> {
-                itemRepository.deleteLostItem(item.id, currentUserId)
-                    .addOnSuccessListener {
-                        showSuccessDialog("Item deleted successfully")
-                        loadMyItems()
-                    }
-                    .addOnFailureListener { exception ->
-                        showErrorDialog("Failed to delete item: ${exception.message}")
-                    }
-            }
-            is FoundItem -> {
-                itemRepository.deleteFoundItem(item.id, currentUserId)
-                    .addOnSuccessListener {
-                        showSuccessDialog("Item deleted successfully")
-                        loadMyItems()
-                    }
-                    .addOnFailureListener { exception ->
-                        showErrorDialog("Failed to delete item: ${exception.message}")
-                    }
+        lifecycleScope.launch {
+            when (item) {
+                is LostItem -> {
+                    itemRepository.deleteLostItem(item.id,
+                        onSuccess = {
+                            showSuccessDialog("Item deleted successfully")
+                            loadMyItems()
+                        },
+                        onFailure = { exception ->
+                            showErrorDialog("Failed to delete item: ${exception.message}")
+                        }
+                    )
+                }
+                is FoundItem -> {
+                    itemRepository.deleteFoundItem(item.id,
+                        onSuccess = {
+                            showSuccessDialog("Item deleted successfully")
+                            loadMyItems()
+                        },
+                        onFailure = { exception ->
+                            showErrorDialog("Failed to delete item: ${exception.message}")
+                        }
+                    )
+                }
             }
         }
     }
 
     private fun showLoginRequiredDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Login Required")
-            .setMessage("You must be logged in to view your reports.")
-            .setPositiveButton("OK", null)
-            .show()
+        // Check if fragment is still attached and activity is not finishing
+        if (!isAdded || requireActivity().isFinishing || requireActivity().isDestroyed) {
+            Log.w("MyReportsFragment", "Cannot show login dialog - fragment not attached or activity finishing")
+            return
+        }
+
+        try {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Login Required")
+                .setMessage("You must be logged in to view your reports.")
+                .setPositiveButton("OK", null)
+                .show()
+        } catch (e: Exception) {
+            Log.e("MyReportsFragment", "Error showing login dialog: ${e.message}")
+        }
     }
 
     private fun showSuccessDialog(message: String) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Success")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
+        // Check if fragment is still attached and activity is not finishing
+        if (!isAdded || requireActivity().isFinishing || requireActivity().isDestroyed) {
+            Log.w("MyReportsFragment", "Cannot show success dialog - fragment not attached or activity finishing")
+            return
+        }
+
+        try {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Success")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show()
+        } catch (e: Exception) {
+            Log.e("MyReportsFragment", "Error showing success dialog: ${e.message}")
+            // Fallback to toast
+            android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showErrorDialog(message: String) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Error")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .show()
+        // Check if fragment is still attached and activity is not finishing
+        if (!isAdded || requireActivity().isFinishing || requireActivity().isDestroyed) {
+            Log.w("MyReportsFragment", "Cannot show error dialog - fragment not attached or activity finishing")
+            return
+        }
+
+        try {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Error")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show()
+        } catch (e: Exception) {
+            Log.e("MyReportsFragment", "Error showing error dialog: ${e.message}")
+            // Fallback to toast
+            android.widget.Toast.makeText(requireContext(), "An error occurred", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        // Clear any references to prevent memory leaks
+        noItemsTextView = null
     }
 
     override fun onResume() {

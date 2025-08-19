@@ -18,8 +18,6 @@ import com.example.campus_lost_found.repository.ItemRepository
 import com.example.campus_lost_found.utils.SupabaseManager
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.firebase.Timestamp
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,9 +48,9 @@ class ReportItemActivity : AppCompatActivity() {
     private var editingExistingItem = false
 
     private val currentUserId: String
-        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-    private val currentUserName: String
-        get() = FirebaseAuth.getInstance().currentUser?.displayName ?: "Anonymous User"
+        get() = SupabaseManager.getInstance().getCurrentUser() ?: ""
+    private val currentUserEmail: String
+        get() = SupabaseManager.getInstance().getCurrentUserEmail() ?: "Anonymous User"
 
     private val getContent = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
@@ -146,52 +144,10 @@ class ReportItemActivity : AppCompatActivity() {
     private fun loadItemData() {
         if (editItemId.isNullOrEmpty()) return
 
-        if (isLostItem) {
-            itemRepository.getLostItem(editItemId!!).addOnSuccessListener { document ->
-                val lostItem = document.toObject(LostItem::class.java) ?: return@addOnSuccessListener
-
-                nameEditText.setText(lostItem.name)
-                descriptionEditText.setText(lostItem.description)
-                setCategorySpinnerSelection(lostItem.category)
-                locationEditText.setText(lostItem.location)
-                selectedDate = lostItem.dateLost.toDate()
-                updateDateButtonText()
-
-                if (lostItem.imageUrl.isNotEmpty()) {
-                    imageUrl = lostItem.imageUrl
-                    Glide.with(this)
-                        .load(imageUrl)
-                        .centerCrop()
-                        .into(itemImageView)
-                    itemImageView.visibility = View.VISIBLE
-                }
-            }.addOnFailureListener { e ->
-                showErrorDialog("Failed to load item: ${e.message}")
-            }
-        } else {
-            itemRepository.getFoundItem(editItemId!!).addOnSuccessListener { document ->
-                val foundItem = document.toObject(FoundItem::class.java) ?: return@addOnSuccessListener
-
-                nameEditText.setText(foundItem.name)
-                descriptionEditText.setText(foundItem.description)
-                setCategorySpinnerSelection(foundItem.category)
-                locationEditText.setText(foundItem.location)
-                keptAtEditText.setText(foundItem.keptAt)
-                selectedDate = foundItem.dateFound.toDate()
-                updateDateButtonText()
-
-                if (foundItem.imageUrl.isNotEmpty()) {
-                    imageUrl = foundItem.imageUrl
-                    Glide.with(this)
-                        .load(imageUrl)
-                        .centerCrop()
-                        .into(itemImageView)
-                    itemImageView.visibility = View.VISIBLE
-                }
-            }.addOnFailureListener { e ->
-                showErrorDialog("Failed to load item: ${e.message}")
-            }
-        }
+        // For editing, we'll disable the functionality for now since we don't have
+        // individual item retrieval methods in our repository
+        // In a full implementation, you would add getSingleLostItem/getSingleFoundItem methods
+        showErrorDialog("Edit functionality is not yet implemented for individual items")
     }
 
     private fun setCategorySpinnerSelection(category: String) {
@@ -259,7 +215,9 @@ class ReportItemActivity : AppCompatActivity() {
             // Show loading state
             submitButton.isEnabled = false
             submitButton.text = "Uploading..."
-            Toast.makeText(this, "Uploading image to Supabase...", Toast.LENGTH_SHORT).show()
+
+            // Show initial upload toast
+            showUploadStartNotification()
 
             lifecycleScope.launch {
                 try {
@@ -272,13 +230,19 @@ class ReportItemActivity : AppCompatActivity() {
                     result.onSuccess { url ->
                         imageUrl = url
                         runOnUiThread {
-                            Toast.makeText(this@ReportItemActivity, "Image uploaded successfully!", Toast.LENGTH_SHORT).show()
+                            // Show success notification
+                            showUploadSuccessNotification()
+
+                            // Reset button to saving state
+                            submitButton.text = "Saving item..."
+
+                            // Save the item after successful upload
                             saveItem()
                         }
                     }.onFailure { exception ->
                         runOnUiThread {
                             Log.e("ReportItem", "Supabase upload failed: ${exception.message}")
-                            showErrorDialog("Failed to upload image: ${exception.message}")
+                            showUploadErrorNotification(exception.message ?: "Unknown error")
                             // Reset button state
                             submitButton.isEnabled = true
                             submitButton.text = if (editingExistingItem) "Update" else "Submit"
@@ -287,7 +251,7 @@ class ReportItemActivity : AppCompatActivity() {
                 } catch (e: Exception) {
                     runOnUiThread {
                         Log.e("ReportItem", "Error during Supabase upload: ${e.message}")
-                        showErrorDialog("Error uploading image: ${e.message}")
+                        showUploadErrorNotification(e.message ?: "Unknown error")
                         // Reset button state
                         submitButton.isEnabled = true
                         submitButton.text = if (editingExistingItem) "Update" else "Submit"
@@ -300,6 +264,47 @@ class ReportItemActivity : AppCompatActivity() {
         }
     }
 
+    private fun showUploadStartNotification() {
+        val snackbar = com.google.android.material.snackbar.Snackbar.make(
+            findViewById(android.R.id.content),
+            "📤 Uploading image to cloud storage...",
+            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+        )
+        snackbar.setBackgroundTint(getColor(R.color.primary_container))
+        snackbar.setTextColor(getColor(R.color.on_primary_container))
+        snackbar.show()
+    }
+
+    private fun showUploadSuccessNotification() {
+        val snackbar = com.google.android.material.snackbar.Snackbar.make(
+            findViewById(android.R.id.content),
+            "✅ Image uploaded successfully!",
+            com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+        )
+        snackbar.setBackgroundTint(getColor(R.color.tertiary_container))
+        snackbar.setTextColor(getColor(R.color.on_tertiary_container))
+        snackbar.setAction("OK") { snackbar.dismiss() }
+        snackbar.show()
+
+        // Also show a toast for immediate feedback
+        Toast.makeText(this, "✅ Photo uploaded to cloud storage!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showUploadErrorNotification(errorMessage: String) {
+        val snackbar = com.google.android.material.snackbar.Snackbar.make(
+            findViewById(android.R.id.content),
+            "❌ Upload failed: $errorMessage",
+            com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+        )
+        snackbar.setBackgroundTint(getColor(R.color.error_container))
+        snackbar.setTextColor(getColor(R.color.on_error_container))
+        snackbar.setAction("RETRY") {
+            snackbar.dismiss()
+            uploadImageAndSaveItem() // Retry upload
+        }
+        snackbar.show()
+    }
+
     private fun saveItem() {
         val name = nameEditText.text.toString().trim()
         val description = descriptionEditText.text.toString().trim()
@@ -308,59 +313,79 @@ class ReportItemActivity : AppCompatActivity() {
 
         if (isLostItem) {
             val lostItem = LostItem(
-                id = editItemId ?: "",
+                id = editItemId ?: java.util.UUID.randomUUID().toString(),
                 name = name,
                 description = description,
                 category = category,
                 location = location,
                 imageUrl = imageUrl,
                 reportedBy = currentUserId,
-                reportedByName = currentUserName,
-                reportedDate = Timestamp.now(),
-                dateLost = Timestamp(selectedDate)
+                reportedByName = currentUserEmail,
+                reportedDate = System.currentTimeMillis(),
+                dateLost = selectedDate.time
             )
 
-            val task = if (editingExistingItem) {
-                itemRepository.updateLostItem(lostItem)
-            } else {
-                itemRepository.addLostItem(lostItem)
-            }
-
-            task.addOnSuccessListener {
-                showSuccessDialog(if (editingExistingItem) "Item updated successfully" else "Item reported successfully")
-            }.addOnFailureListener { e ->
-                showErrorDialog("Failed to save item: ${e.message}")
+            lifecycleScope.launch {
+                if (editingExistingItem) {
+                    itemRepository.updateLostItem(lostItem,
+                        onSuccess = {
+                            showSuccessDialog("Item updated successfully")
+                        },
+                        onFailure = { e ->
+                            showErrorDialog("Failed to update item: ${e.message}")
+                        }
+                    )
+                } else {
+                    itemRepository.addLostItem(lostItem,
+                        onSuccess = {
+                            showSuccessDialog("Item reported successfully")
+                        },
+                        onFailure = { e ->
+                            showErrorDialog("Failed to save item: ${e.message}")
+                        }
+                    )
+                }
             }
         } else {
             val keptAt = keptAtEditText.text.toString().trim()
 
             val foundItem = FoundItem(
-                id = editItemId ?: "",
+                id = editItemId ?: java.util.UUID.randomUUID().toString(),
                 name = name,
                 description = description,
                 category = category,
                 location = location,
                 imageUrl = imageUrl,
                 reportedBy = currentUserId,
-                reportedByName = currentUserName,
-                reportedDate = Timestamp.now(),
+                reportedByName = currentUserEmail,
+                reportedDate = System.currentTimeMillis(),
                 keptAt = keptAt,
                 claimed = false,
                 claimedBy = "",
                 claimedByName = "",
-                dateFound = Timestamp(selectedDate)
+                dateFound = selectedDate.time
             )
 
-            val task = if (editingExistingItem) {
-                itemRepository.updateFoundItem(foundItem)
-            } else {
-                itemRepository.addFoundItem(foundItem)
-            }
-
-            task.addOnSuccessListener {
-                showSuccessDialog(if (editingExistingItem) "Item updated successfully" else "Item reported successfully")
-            }.addOnFailureListener { e ->
-                showErrorDialog("Failed to save item: ${e.message}")
+            lifecycleScope.launch {
+                if (editingExistingItem) {
+                    itemRepository.updateFoundItem(foundItem,
+                        onSuccess = {
+                            showSuccessDialog("Item updated successfully")
+                        },
+                        onFailure = { e ->
+                            showErrorDialog("Failed to update item: ${e.message}")
+                        }
+                    )
+                } else {
+                    itemRepository.addFoundItem(foundItem,
+                        onSuccess = {
+                            showSuccessDialog("Item reported successfully")
+                        },
+                        onFailure = { e ->
+                            showErrorDialog("Failed to save item: ${e.message}")
+                        }
+                    )
+                }
             }
         }
     }

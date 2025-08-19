@@ -16,7 +16,6 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
-import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -222,7 +221,7 @@ class SearchFilterManager(
         val dateFormat = SimpleDateFormat("MMM dd", Locale.getDefault())
 
         dateFilterButton.text = when {
-            startDate != null && endDate != null -> 
+            startDate != null && endDate != null ->
                 "${dateFormat.format(startDate!!)} - ${dateFormat.format(endDate!!)}"
             startDate != null -> 
                 "From ${dateFormat.format(startDate!!)}"
@@ -241,20 +240,19 @@ class SearchFilterManager(
         onSearchFiltersChanged(searchQuery, selectedCategories, startDate, endDate, selectedLocation)
     }
 
-    // Helper methods for converting between Date and Timestamp
-    fun getStartTimestamp(): Timestamp? {
-        return startDate?.let { Timestamp(it) }
+    // Helper methods for converting between Date and Long timestamps
+    fun getStartTimestamp(): Long? {
+        return startDate?.time
     }
 
-    fun getEndTimestamp(): Timestamp? {
-        // If end date is specified, add 23:59:59 to include the whole day
+    fun getEndTimestamp(): Long? {
         return endDate?.let {
             val calendar = Calendar.getInstance()
             calendar.time = it
             calendar.set(Calendar.HOUR_OF_DAY, 23)
             calendar.set(Calendar.MINUTE, 59)
             calendar.set(Calendar.SECOND, 59)
-            Timestamp(calendar.time)
+            calendar.timeInMillis
         }
     }
 

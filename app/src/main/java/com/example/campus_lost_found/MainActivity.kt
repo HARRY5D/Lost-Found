@@ -3,13 +3,11 @@ package com.example.campus_lost_found
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.view.Menu
-import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.button.MaterialButton
@@ -17,7 +15,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
-import com.google.firebase.auth.FirebaseAuth
+import com.example.campus_lost_found.utils.SupabaseManager
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -51,20 +50,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun initializeViews() {
         try {
-            // Set up toolbar
-            val toolbar: Toolbar = findViewById(R.id.toolbar)
-            setSupportActionBar(toolbar)
-            supportActionBar?.title = getString(R.string.app_name)
+            // No need to set up toolbar since we're using a custom layout
+            supportActionBar?.hide() // Hide the default action bar
 
-            // Handle logout button in toolbar
+            // Handle logout button - now directly accessible
             val logoutButton = findViewById<MaterialButton>(R.id.logoutButton)
             logoutButton?.setOnClickListener {
                 showLogoutConfirmation()
             }
 
-            // Check authentication state and hide/show logout button
-            val currentUser = FirebaseAuth.getInstance().currentUser
-            logoutButton?.visibility = if (currentUser == null) {
+            // Check Supabase authentication state and hide/show logout button
+            val isUserSignedIn = SupabaseManager.getInstance().isUserSignedIn()
+            logoutButton?.visibility = if (!isUserSignedIn) {
                 android.view.View.GONE
             } else {
                 android.view.View.VISIBLE
@@ -89,64 +86,73 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupTabsAndViewPager() {
         try {
-            // Get the TabLayout from the new design
+            // Get views directly from layout - much simpler approach
             tabLayout = findViewById(R.id.mainTabLayout)
+            viewPager = findViewById(R.id.mainViewPager)
 
-            // Create ViewPager2 and replace the fragment container
-            viewPager = ViewPager2(this)
-            viewPager.id = android.view.View.generateViewId()
+            // Set up ViewPager2 with adapter
+            viewPager.adapter = MainPagerAdapter(this)
 
-            // Find the fragment container and replace it with ViewPager2
-            val fragmentContainer = findViewById<androidx.fragment.app.FragmentContainerView>(R.id.nav_host_fragment)
-            if (fragmentContainer != null) {
-                val parent = fragmentContainer.parent as android.view.ViewGroup
-                val layoutParams = fragmentContainer.layoutParams
-                parent.removeView(fragmentContainer)
-                parent.addView(viewPager, layoutParams)
+            // Connect TabLayout with ViewPager2
+            TabLayoutMediator(tabLayout, viewPager) { tab, position ->
+                tab.text = when (position) {
+                    0 -> "Lost Items"
+                    1 -> "Found Items"
+                    2 -> "My Reports"
+                    else -> "Tab ${position + 1}"
+                }
+            }.attach()
 
-                // Set up ViewPager2 with adapter
-                viewPager.adapter = MainPagerAdapter(this)
-
-                // Connect TabLayout with ViewPager2
-                TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-                    tab.text = when (position) {
-                        0 -> "Lost Items"
-                        1 -> "Found Items"
-                        2 -> "My Reports"
-                        else -> "Tab ${position + 1}"
-                    }
-                }.attach()
-
-                Log.d(TAG, "Tabs and ViewPager setup completed successfully")
-            } else {
-                Log.e(TAG, "Fragment container not found")
-                throw Exception("Fragment container not found")
-            }
+            Log.d(TAG, "Tabs and ViewPager setup completed successfully")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to setup tabs: ${e.message}")
-            // If ViewPager setup fails, create a simple fallback
-            createSimpleTabLayout()
+            Log.e(TAG, "Failed to setup tabs: ${e.message}", e)
+            // Simple fallback if TabLayout setup fails
+            setupSimpleFragments()
         }
     }
 
-    private fun createSimpleTabLayout() {
+    private fun setupSimpleFragments() {
         try {
-            // Hide the problematic ViewPager and create simple button navigation
-            tabLayout.visibility = android.view.View.GONE
+            // Fallback: Create a simple fragment container if ViewPager fails
+            val container = android.widget.FrameLayout(this)
+            container.id = android.view.View.generateViewId()
 
-            // Create simple fragment container
-            val fragmentContainer = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-            if (fragmentContainer == null) {
-                // Manually add the first fragment
-                supportFragmentManager.beginTransaction()
-                    .replace(android.R.id.content, LostItemsFragment())
-                    .commit()
-            }
+            // Replace the ViewPager with a simple container
+            val parent = viewPager.parent as android.view.ViewGroup
+            val layoutParams = viewPager.layoutParams
+            val index = parent.indexOfChild(viewPager)
 
-            Log.d(TAG, "Simple tab layout created")
+            parent.removeView(viewPager)
+            parent.addView(container, index, layoutParams)
+
+            // Show the first fragment by default
+            supportFragmentManager.beginTransaction()
+                .replace(container.id, LostItemsFragment())
+                .commit()
+
+            // Set up tab click listeners manually
+            tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab?) {
+                    val fragment = when (tab?.position) {
+                        0 -> LostItemsFragment()
+                        1 -> FoundItemsFragment()
+                        2 -> MyReportsFragment()
+                        else -> LostItemsFragment()
+                    }
+
+                    supportFragmentManager.beginTransaction()
+                        .replace(container.id, fragment)
+                        .commit()
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab?) {}
+                override fun onTabReselected(tab: TabLayout.Tab?) {}
+            })
+
+            Log.d(TAG, "Simple fragments setup completed")
         } catch (e: Exception) {
-            Log.e(TAG, "Even simple layout failed: ${e.message}")
+            Log.e(TAG, "Even simple fragments setup failed: ${e.message}", e)
         }
     }
 
@@ -197,9 +203,9 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(reportButton)
 
-        // Add logout button if user is authenticated
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        if (currentUser != null) {
+        // Add logout button if user is authenticated with Supabase
+        val isUserSignedIn = SupabaseManager.getInstance().isUserSignedIn()
+        if (isUserSignedIn) {
             val logoutButton = android.widget.Button(this)
             logoutButton.text = "Logout"
             logoutButton.setOnClickListener {
@@ -218,11 +224,30 @@ class MainActivity : AppCompatActivity() {
                 .setTitle("Logout")
                 .setMessage("Are you sure you want to logout?")
                 .setPositiveButton("Logout") { _, _ ->
-                    FirebaseAuth.getInstance().signOut()
-                    val intent = Intent(this, LoginActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
+                    // Use Supabase logout instead of Firebase
+                    lifecycleScope.launch {
+                        try {
+                            val result = SupabaseManager.getInstance().signOut()
+                            result.onSuccess {
+                                runOnUiThread {
+                                    val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                    startActivity(intent)
+                                    finish()
+                                }
+                            }.onFailure { exception ->
+                                runOnUiThread {
+                                    Log.e(TAG, "Logout failed: ${exception.message}")
+                                    Toast.makeText(this@MainActivity, "Logout failed", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread {
+                                Log.e(TAG, "Error during logout: ${e.message}")
+                                Toast.makeText(this@MainActivity, "Logout error", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
